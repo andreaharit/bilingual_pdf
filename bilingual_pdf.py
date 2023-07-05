@@ -9,44 +9,34 @@ def main():
     # initiale variables
     source_processed = {} # dict stores original text {page: [paragraph 1, paragraph 2 etc]}
     translated_processed = {} # dict stores translated text {page: [translated paragraph 1, etc]}
-    
 
-    # gets pdf document from user 
-    while True:
-        try:
-            file_path = input("Please insert the PDF file path to be translated: \n")
-            valid_file_path = get_file(file_path)        
-            break    
-        except (ValueError, FileExistsError):
-            pass
+    # gets pdf file path from user and check if it's valid
+    valid_file_path = input_file()
 
-    print("We will now select the target language for translation.\n")
+    # asks user for translation engine
+    user_eng = user_chosen_eng()     
 
-    # displays, if user chooses, supported languages
-    while True:
-        try:
-            info = input("First, would you like to know the possible languages? Please type Y or N.\n")
-            user_possible_lang(info) 
-            break           
-        except (ValueError):
-            pass
+    # if user wants, displays supported languages according to the engine 
+    answer = asks_user_supported_lang(user_eng)
+    if answer:
+        open_supported(user_eng)
 
     # gets target language from user
-    # obs: this was done without the "while true try" so I can practice something new
-    user_lang = user_chosen_lang()     
+    user_lang = user_chosen_lang(user_eng)
 
-             
     # transforms pdf into 2 dict: one with original text, other with translated    
     try: 
-        source_processed, translated_processed = source_builder(valid_file_path, user_lang)
+        source_processed, translated_processed = source_builder(valid_file_path, user_lang, user_eng)
     except Exception:
         raise Exception ("Something unexpected happened! File could not be translated\n")             
      
+    # TO DO: asks user for path to new pdf and name
 
-    # building new pdf
+    # TO DO: builds a new pdf with the table showing paragraph ID, original text and translated
     print("Preparing Bilingual pdf!\n")
 
-    # outputting new pdf
+    # TO DO: opens new pdf
+
 
     # builds a json file
     # with open('clean_original3.json', 'w', encoding = 'utf-8') as output:
@@ -54,9 +44,20 @@ def main():
 
 # FUNCTIONS
 
-# tests validy of pdf file from user, TESTED
+# ask user for original PDF file path
+def input_file():        
+    while True:
+            try:
+                file_path = input("Please insert the PDF file path to be translated: ")
+                valid_file_path = get_file(file_path)  # check if file path and PDF is valid        
+                return valid_file_path     
+            except (ValueError, FileExistsError):
+                pass
+
+# tests validy of PDF file provided
 def get_file(file_path):  
-    file_path.lower().strip()
+    file_path.strip()
+
     if (file_path.endswith('.pdf')):  # is it a .pdf?
         if (os.path.isfile(file_path)):  # is it a valid file path? (maybe redundant?)
             try:
@@ -68,53 +69,91 @@ def get_file(file_path):
             raise FileExistsError("File path not valid.\n")
     else:
         raise ValueError("File must be in .pdf format.\n")
+    
 
-# Asks user if they want to see the supported languages, TESTED
-def user_possible_lang(info): 
+# gets user choice for search engine
+def user_chosen_eng():
+    engines = { 
+        "google":["g", "google"],
+        "deepl":["d","deepl"]
+        }
+    while True:
+        try:
+            answer = input("Please choose a search engine Google or Deepl. Type G or D:").lower().strip()            
+            for e_key, e_value in engines:
+                if answer in e_value:
+                    return e_key
+                else:
+                    raise ValueError   
+        except ValueError:
+            print ("Answer not recognized.\n")
+            pass
+    
+# Asks user if they want to see supported languages
+def asks_user_supported_lang(engine):
     # supported answers 
     yes = ["y", "yes"]
-    no = ["n", "no"]  
-    info = info.lower().strip()  
+    no = ["n", "no"] 
 
-    if info in yes:
-        webbrowser.open(r'languages_info.pdf') # open a pdf with supported languages in default user app  
-        return True              
-    elif info in no:
-        return True              
-    else: # if user types wrong stuff
-        print ("Please type Y or N.\n")
-        raise ValueError
+    while True:
+        try:
+            answer = input("Would you like to know the possible languages? Please type Y or N: ").lower().strip()
+            if answer in yes:  
+                return True
+            elif answer in no:
+                return False
+            else: 
+                raise ValueError               
+        except ValueError:
+            print ("Please type Y or N.\n")
+            pass
+
+# Opens PDF with supported languages according to chosen engine
+def open_supported(engine): 
+    supported = {"google":"supported_google.pdf",
+                 "deepl": "supported_deepl.pdf"}   
+    if engine in supported:
+        file = supported[engine]
+        webbrowser.open(file)
+        return True 
+    else:
+        raise ValueError 
         
-# Gets user input of target language
-# Obs: it has input inside so I can practice pytest monkeypatch and a new way of looping  
-def user_chosen_lang(user_lang): 
-    # asks user lang choice
-    lang = input ("Choose your language: \n") 
-    lang = lang.lower().strip()
+# Gets user target language and returns the language code accepted by translators
+# Obs: function made this way so I can practice pytest monkeypatch and a new way of looping  
+def user_chosen_lang(engine):
+    eng_files = {"google":"supported_google.json",
+                 "deepl": "supported_deepl.json"}  
+ 
+    # asks user lang choice    
+    user_lang = input ("Choose your language: \n") 
+    user_lang = user_lang.lower().strip()
 
-    # load supported languages
-    f = open('supported_languages.json')
-    lang_file =  json.load(f)
+    # load supported languages according to chosen engine
+    if engine in eng_files:
+        f = open (eng_files[engine]) # open a pdf with supported languages in user default app  
+        supported =  json.load(f)    
+    else:
+        raise ValueError
 
     # sees if user input is recognized in the supported languages
-    if lang in lang_file.keys(): # if it's the short version of the language ex "en" 
-        chosen_language = lang         
+    if user_lang in supported.keys(): # is it already the language code? ex "en" 
+        chosen_language = user_lang         
         f.close()
         return chosen_language           
-    else: # if user typed the long version of the language's name ex "English"
-        lang = lang.title() # formating to match the json with supported languages
-        for lang_key, item in lang_file.items():
-            if type(item) != list: # if there is just one supported way of naming it
-                item = [item] # tuns into list fro checking, some langs have more names                       
-            if lang in item:  # checks list of lang names to see if matches the supported ones
-                chosen_language = lang_key               
+    else: # if user typed the long version, aka names, ex "English"
+        user_lang = user_lang.title() # formating to match the json 
+        for code, names in supported.items():
+            if type(names) != list: # if there is just one way of naming the lang (some is more)
+                names = [names] # tuns into list, so if can be checked in the following line                       
+            if user_lang in names:  # then checks names in lists for match
+                chosen_language = code               
                 f.close()
                 return chosen_language             
     print ("No language found.\n")
-    info = input("Would you like to know the possible languages? Please type Y or N.\n")
-    user_possible_lang(info) 
-    user_lang()    
-         
+    asks_user_supported_lang()
+    return user_chosen_lang()   
+
 
 # Extracts pages and paragraphs from original pdf, transforming in dictionary. TESTED
 def source_builder(document, user_lang):  
@@ -128,8 +167,8 @@ def source_builder(document, user_lang):
     doc = fitz.open(document)   
     for page in doc:
         # provisory list of paragraphs in each page
-        p_list_original = [] 
-        p_list_translated = [] 
+        provisional_original = [] 
+        provisional_translated = [] 
 
         # reads each "block" in the page, aka list with characteristics and content of a paragraph
         source = page.get_text("blocks")     
@@ -138,13 +177,13 @@ def source_builder(document, user_lang):
                 sentence = p_cleaner(paragraph[4]) # clean paragraph of weird markdown/special char stuff                
                 if sentence != "" or sentence != "\n": # ignores blank paragraphs
                     # keeps populating provisory lists in current page
-                    p_list_original.append(sentence)                                 
-                    p_list_translated.append(translate(sentence, user_lang)) 
+                    provisional_original.append(sentence)                                 
+                    provisional_translated.append(translate(sentence, user_lang)) 
 
         # after provisory list is done:
         # builds dict with that page number as key and its list of paragraphs as values           
-        original[n_page] = p_list_original        
-        translated[n_page] = p_list_translated
+        original[n_page] = provisional_original        
+        translated[n_page] = provisional_translated
         
         # and let's do the next page then
         n_page = n_page + 1
@@ -159,11 +198,11 @@ def p_cleaner(paragraph):  # Clean paragraphs texts of weird leftover characters
 def hf_cleaner(): # TO DO clean dictionary with original from possible repetitive footers and headers
     print("something")
 
-# Functional but TO TEST: translate each paragraph of a dic and build a new one    
-def translate(paragraph, language): 
+# Translate each paragraph, TESTED    
+def translate(paragraph, language, engine): 
     # uses google translate            
     try:
-        translation = ts.translate_text(query_text = paragraph, translator = 'google', from_language = 'auto', to_language=language)        
+        translation = ts.translate_text(query_text = paragraph, translator = engine, from_language = 'auto', to_language=language)        
     except Exception:       
         translation = "ERROR: Could not translate, sorry!\n"
     return translation
