@@ -3,6 +3,7 @@ import json
 import os # checks if file path is ok
 import webbrowser # open pdf in app
 import translators as ts # translation tool
+import sys
 
 
 def main():
@@ -17,9 +18,9 @@ def main():
     user_eng = user_chosen_eng()     
 
     # if user wants, displays supported languages according to the engine 
-    answer = asks_user_supported_lang(user_eng)
+    answer = asks_see_supported(user_eng)
     if answer:
-        open_supported(user_eng)
+        open_supported_file(user_eng)
 
     # gets target language from user
     user_lang = user_chosen_lang(user_eng)
@@ -44,53 +45,47 @@ def main():
 
 # FUNCTIONS
 
-# ask user for original PDF file path
+# ask user for original PDF file path TESTED
 def input_file():        
     while True:
             try:
                 file_path = input("Please insert the PDF file path to be translated: ")
-                valid_file_path = get_file(file_path)  # check if file path and PDF is valid        
+                valid_file_path = check_file(file_path)  # check if file path and PDF is valid        
                 return valid_file_path     
-            except (ValueError, FileExistsError):
+            except FileExistsError:
+                print("Error loading the file, please check the file path and if the file is a PDF.\n")
                 pass
 
-# tests validy of PDF file provided
-def get_file(file_path):  
+# tests validy of PDF file provided TESTED
+def check_file(file_path):  
     file_path.strip()
+    try: 
+        doc = fitz.open(file_path)  # is it a readable file?
+        return file_path
+    except Exception:
+        raise FileExistsError   
 
-    if (file_path.endswith('.pdf')):  # is it a .pdf?
-        if (os.path.isfile(file_path)):  # is it a valid file path? (maybe redundant?)
-            try:
-                doc = fitz.open(file_path)  # is it a readable file?
-                return file_path
-            except:
-                raise FileExistsError("Corrupted pdf.\n")
-        else:
-            raise FileExistsError("File path not valid.\n")
-    else:
-        raise ValueError("File must be in .pdf format.\n")
-    
-
-# gets user choice for search engine
+# gets user choice for search engine TESTED
 def user_chosen_eng():
-    engines = { 
-        "google":["g", "google"],
-        "deepl":["d","deepl"]
-        }
+    engines = {
+        "g":"google",
+        "d":"deepl"
+        }   
     while True:
-        try:
+        try:            
             answer = input("Please choose a search engine Google or Deepl. Type G or D:").lower().strip()            
-            for e_key, e_value in engines:
-                if answer in e_value:
-                    return e_key
-                else:
-                    raise ValueError   
+            if answer in engines.keys():
+                return engines[answer] 
+            elif answer in engines.values():
+                return answer
+            else:                 
+                raise ValueError
         except ValueError:
             print ("Answer not recognized.\n")
             pass
     
-# Asks user if they want to see supported languages
-def asks_user_supported_lang(engine):
+# Asks user if they want to see supported languages TESTED
+def asks_see_supported(engine="google"):
     # supported answers 
     yes = ["y", "yes"]
     no = ["n", "no"] 
@@ -98,7 +93,7 @@ def asks_user_supported_lang(engine):
     while True:
         try:
             answer = input("Would you like to know the possible languages? Please type Y or N: ").lower().strip()
-            if answer in yes:  
+            if answer in yes:
                 return True
             elif answer in no:
                 return False
@@ -109,7 +104,7 @@ def asks_user_supported_lang(engine):
             pass
 
 # Opens PDF with supported languages according to chosen engine
-def open_supported(engine): 
+def open_supported_file(engine): 
     supported = {"google":"supported_google.pdf",
                  "deepl": "supported_deepl.pdf"}   
     if engine in supported:
@@ -118,42 +113,54 @@ def open_supported(engine):
         return True 
     else:
         raise ValueError 
+    
+def user_chosen_lang(engine):
+    while True:
+        try:
+            user_lang = input ("Choose your language: \n").lower().strip() 
+            lang_code = validadate_lang(user_lang, engine)
+            return lang_code
+        except ValueError:
+            print ("No language found. Let's try again!\n")
+            asks_see_supported()
+            pass
+        except ImportError:
+            print ("Fatal Error loading language file.\n")
+            sys.exit()
+            
+
+
+
         
 # Gets user target language and returns the language code accepted by translators
 # Obs: function made this way so I can practice pytest monkeypatch and a new way of looping  
-def user_chosen_lang(engine):
+def validadate_lang(user_lang, engine):
     eng_files = {"google":"supported_google.json",
-                 "deepl": "supported_deepl.json"}  
- 
-    # asks user lang choice    
-    user_lang = input ("Choose your language: \n") 
-    user_lang = user_lang.lower().strip()
-
+                 "deepl": "supported_deepl.json"}   
+    
     # load supported languages according to chosen engine
-    if engine in eng_files:
+    try:        
         f = open (eng_files[engine]) # open a pdf with supported languages in user default app  
         supported =  json.load(f)    
-    else:
-        raise ValueError
+    except Exception:        
+        raise ImportError
 
     # sees if user input is recognized in the supported languages
+  
     if user_lang in supported.keys(): # is it already the language code? ex "en" 
         chosen_language = user_lang         
         f.close()
         return chosen_language           
     else: # if user typed the long version, aka names, ex "English"
         user_lang = user_lang.title() # formating to match the json 
-        for code, names in supported.items():
+        for code, names in supported.items():                
             if type(names) != list: # if there is just one way of naming the lang (some is more)
                 names = [names] # tuns into list, so if can be checked in the following line                       
             if user_lang in names:  # then checks names in lists for match
                 chosen_language = code               
                 f.close()
-                return chosen_language             
-    print ("No language found.\n")
-    asks_user_supported_lang()
-    return user_chosen_lang()   
-
+                return chosen_language
+    raise ValueError
 
 # Extracts pages and paragraphs from original pdf, transforming in dictionary. TESTED
 def source_builder(document, user_lang):  
@@ -184,8 +191,6 @@ def source_builder(document, user_lang):
         # builds dict with that page number as key and its list of paragraphs as values           
         original[n_page] = provisional_original        
         translated[n_page] = provisional_translated
-        
-        # and let's do the next page then
         n_page = n_page + 1
     return original, translated
 

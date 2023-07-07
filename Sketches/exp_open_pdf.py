@@ -1,7 +1,7 @@
 import webbrowser
 
 def main():
-    engine = "google"
+    engine = "deepl"
     open_pdf_supported(engine)
 
 def open_pdf_supported (engine):
