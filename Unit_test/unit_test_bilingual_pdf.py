@@ -1,47 +1,68 @@
 import pytest
-from bilingual_pdf  import get_file, user_possible_lang, user_chosen_lang
+from bilingual_pdf  import check_file, user_chosen_eng, asks_see_supported, validadate_lang
+
 
 def main():
     
     test_file_valid()
-    test_user_possible_lang()
-    test_user_lang()
+    test_chosen_eng()
+    test_supoported_pdf()
+    test_validadate_lang()
 
-# Test 1: test function that sees if user provided a valid pdf file and file path
+# Test 1: test if user provided a valid pdf file and file path
 def test_file_valid():
     
-    assert (get_file('example1.pdf')) == 'example1.pdf'  # Valid pdf and valid file path
-    with pytest.raises(ValueError):  # Not a pdf, but valid file path
-        get_file("supported_languages.json")
+    assert (check_file('example1.pdf')) == 'example1.pdf'  # Valid pdf and valid file path
+    with pytest.raises(FileExistsError):  # Not a pdf, but valid file path
+        check_file("supported_languages.json")
     with pytest.raises(FileExistsError):  # Invalid file path
-        get_file("nonexistent.pdf")
+        check_file("nonexistent.pdf")
     with pytest.raises(FileExistsError):  # Corrupted pdf, valid file path
-        get_file("corruptedpdf.pdf")
+        check_file("corruptedpdf.pdf")
 
-# Test 2: test language choosing
-def test_user_possible_lang():
-    assert (user_possible_lang('Y')) == True
-    assert (user_possible_lang('y')) == True
-    assert (user_possible_lang("Y ")) == True
-    with pytest.raises(ValueError):  
-        user_possible_lang("F")
-    with pytest.raises(ValueError):  
-        user_possible_lang("")
-    with pytest.raises(ValueError):  
-        user_possible_lang("yess")  
+# Teste 2: test choice of engine
+def test_chosen_eng(monkeypatch):
+    inputs = ['google','Google', 'g', 'G',"deepl", "d"]
+   
+    for i in inputs[0:4]:    
+        monkeypatch.setattr('builtins.input', lambda _: i)
+        result = user_chosen_eng()
+        assert result == "google"
+       
+    for j in inputs[4:]:
+        monkeypatch.setattr('builtins.input', lambda _: j)
+        result = user_chosen_eng()
+        assert result == "deepl"
+    
 
-def test_user_lang(monkeypatch):
-    inputs = ['English','english', 'en', 'Myanmar Burmese', 'Myanmar burmese',  'Zu', 'ZU']
-    answers = ['en','en','en', 'my', 'my', 'zu', 'zu' ]
+
+# Test 3: test if user wants to see the supported languagues
+def test_supoported_pdf(monkeypatch):
+    inputs = ["Y", "y ","n"]
+    expected= [True, True, False]
     for i in range(len(inputs)):
-        monkeypatch.setattr('builtins.input', lambda _: inputs[i])
-        result = user_chosen_lang()
-        assert result == answers[i]
-    with pytest.raises (ValueError):
-        monkeypatch.setattr('builtins.input', lambda _: "invalid")
-        user_chosen_lang()
-    """Why Value Error? Because when I monkeupatch "invalid", user_chosen_lang doesn't recognize this langugae,
-    then it goes to """
+        monkeypatch.setattr('builtins.input', lambda _: inputs[i])       
+        result = asks_see_supported("google")
+        assert result == expected[i]
+    
+# Test 4: test if languague is accepted by engine and code return
+def test_validadate_lang(): 
+    inputs = ['English','english', 'en', 'Myanmar Burmese', 'Myanmar burmese',  'zu']
+    answers = ['en','en','en', 'my', 'my', 'zu' ]  
+    for i in range(len(inputs)):      
+        assert (validadate_lang(inputs[i], "google")) == answers[i] 
+    for eng in ["google","deepl"]:
+        with pytest.raises (ValueError):
+            validadate_lang("blah", eng)
+    for j in range(3): 
+        assert (validadate_lang(inputs[j], "deepl")) == answers[j] 
+
+
+
+    
+
+     
+
 
     
 # Test 3: test text extraction

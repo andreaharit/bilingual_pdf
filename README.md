@@ -59,7 +59,7 @@ And finally, it spits the new bilingual PDF. (TO DO)
 
 
 <details>
-  <summary>## Personal journey</summary>
+  <summary>Personal journey</summary>
 
 ### What I learned
 - I learned a lot about reading documentation, even though 99.99% of all documentation is still very "over 1000 IQ" cryptic to me.
