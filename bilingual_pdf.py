@@ -1,6 +1,5 @@
 import fitz # PyMuPDF 1.22.2, handles reading a pdf
 import json
-import os # checks if file path is ok
 import webbrowser # open pdf in app
 import translators as ts # translation tool
 import sys
@@ -25,23 +24,28 @@ def main():
     # gets target language from user
     user_lang = user_chosen_lang(user_eng)
 
+    print("Preparing Bilingual pdf! This might take a bit =)\n")
+
+
     # transforms pdf into 2 dict: one with original text, other with translated    
     try: 
-        source_processed, translated_processed = source_builder(valid_file_path, user_lang, user_eng)
+        source_processed, translated_processed, paragraphs = source_builder(valid_file_path, user_lang, user_eng)
     except Exception:
-        raise Exception ("Something unexpected happened! File could not be translated\n")             
+        raise Exception ("Something unexpected happened! File could not be translated")             
      
     # TO DO: asks user for path to new pdf and name
 
     # TO DO: builds a new pdf with the table showing paragraph ID, original text and translated
-    print("Preparing Bilingual pdf!\n")
 
     # TO DO: opens new pdf
 
 
-    # builds a json file
-    # with open('clean_original3.json', 'w', encoding = 'utf-8') as output:
-    # json.dump(source, output, ensure_ascii = False, indent=4)
+    # builds a json file for testing
+    with open('original.json', 'w', encoding = 'utf-8') as one:
+        json.dump(source_processed, one, ensure_ascii = False, indent=4)
+    with open('translated.json', 'w', encoding = 'utf-8') as two:
+        json.dump(translated_processed, two, ensure_ascii = False, indent=4)
+    print (paragraphs)
 
 # FUNCTIONS
 
@@ -113,11 +117,13 @@ def open_supported_file(engine):
         return True 
     else:
         raise ValueError 
-    
+
+# Ask user to input target language for translation
+
 def user_chosen_lang(engine):
     while True:
         try:
-            user_lang = input ("Choose your language: \n").lower().strip() 
+            user_lang = input ("Please type the languague you want to translate to: ").lower().strip() 
             lang_code = validadate_lang(user_lang, engine)
             return lang_code
         except ValueError:
@@ -128,11 +134,8 @@ def user_chosen_lang(engine):
             print ("Fatal Error loading language file.\n")
             sys.exit()
             
-
-
-
         
-# Gets user target language and returns the language code accepted by translators
+# Validate user typed language, and returns the language code accepted by translators
 # Obs: function made this way so I can practice pytest monkeypatch and a new way of looping  
 def validadate_lang(user_lang, engine):
     eng_files = {"google":"supported_google.json",
@@ -140,32 +143,35 @@ def validadate_lang(user_lang, engine):
     
     # load supported languages according to chosen engine
     try:        
-        f = open (eng_files[engine]) # open a pdf with supported languages in user default app  
+        f = open (eng_files[engine]) # open the json with supported languages for given engine  
         supported =  json.load(f)    
     except Exception:        
         raise ImportError
 
-    # sees if user input is recognized in the supported languages
+    # sees if user input is recognized inside that json
   
-    if user_lang in supported.keys(): # is it already the language code? ex "en" 
+    if user_lang in supported.keys(): # user typed alredy the language code? ex "en" 
         chosen_language = user_lang         
         f.close()
         return chosen_language           
-    else: # if user typed the long version, aka names, ex "English"
-        user_lang = user_lang.title() # formating to match the json 
+    else: # user typed the long version? ex "English"
+        user_lang = user_lang.title() # formating to match the json style
         for code, names in supported.items():                
-            if type(names) != list: # if there is just one way of naming the lang (some is more)
-                names = [names] # tuns into list, so if can be checked in the following line                       
-            if user_lang in names:  # then checks names in lists for match
+            if type(names) != list: # if there is just one way of naming the lang (some langs have many)
+                names = [names] # tuns into list, so folloring line can check for langs with one or multiple names                     
+            if user_lang in names:  # then checks names in lists for match with user input, returning the code
                 chosen_language = code               
                 f.close()
                 return chosen_language
     raise ValueError
 
 # Extracts pages and paragraphs from original pdf, transforming in dictionary. TESTED
-def source_builder(document, user_lang):  
+
+def source_builder(document, lang, eng):  
     # variables initialization
     n_page = 1  # page counter, starts in 1 to be user friendlier
+    p = [] # stores number of paragraphs per page
+
     # dicts to hold original and translated: key is page's number, elements are its paragraphs
     translated = {}
     original = {} 
@@ -176,6 +182,7 @@ def source_builder(document, user_lang):
         # provisory list of paragraphs in each page
         provisional_original = [] 
         provisional_translated = [] 
+        par = 0 # provisional paragraph counter per page
 
         # reads each "block" in the page, aka list with characteristics and content of a paragraph
         source = page.get_text("blocks")     
@@ -185,14 +192,16 @@ def source_builder(document, user_lang):
                 if sentence != "" or sentence != "\n": # ignores blank paragraphs
                     # keeps populating provisory lists in current page
                     provisional_original.append(sentence)                                 
-                    provisional_translated.append(translate(sentence, user_lang)) 
-
+                    provisional_translated.append(translate(sentence, lang, eng)) 
+                    par = par + 1
         # after provisory list is done:
-        # builds dict with that page number as key and its list of paragraphs as values           
+        # update list of number of paragraphs in each page
+        p.append(par) 
+        # builds dict with that page number as key and its list of paragraphs as values        
         original[n_page] = provisional_original        
         translated[n_page] = provisional_translated
         n_page = n_page + 1
-    return original, translated
+    return original, translated, p
 
 # TO DO: there are other leftover characters not cleaned yet 
 # to think: should I ignore paragraphs that are just websites, dates, numbers?
