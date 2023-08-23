@@ -6,7 +6,7 @@ import translators as ts # translation tool
 
 
 def main():
-    # initiale variables
+    # initiate variables
     source_processed = {} # dict stores original text {page: [paragraph 1, paragraph 2 etc]}
     translated_processed = {} # dict stores translated text {page: [translated paragraph 1, etc]}
 
