@@ -2,7 +2,6 @@ import fitz # PyMuPDF 1.22.2, handles reading a pdf
 import json
 import webbrowser # open pdf in app
 import translators as ts # translation tool
-import sys
 
 
 def main():
@@ -22,8 +21,8 @@ def main():
         open_supported_file(user_eng)
 
     # gets target language from user
-    user_lang = user_chosen_lang(user_eng)
-
+    user_lang, lang_name = user_chosen_lang(user_eng)
+    print("Great, we are translating now " + valid_file_path + " to " + lang_name + ".\n")
     print("Preparing Bilingual pdf! This might take a bit =)\n")
 
 
@@ -46,6 +45,7 @@ def main():
     with open('translated.json', 'w', encoding = 'utf-8') as two:
         json.dump(translated_processed, two, ensure_ascii = False, indent=4)
     print (paragraphs)
+    print ("It worked! Go check =) \n")
 
 # FUNCTIONS
 
@@ -70,14 +70,16 @@ def check_file(file_path):
         raise FileExistsError   
 
 # gets user choice for search engine TESTED
+# note, the translator library is having issues with deepl, so this option is commented until this is solved
 def user_chosen_eng():
     engines = {
         "g":"google",
-        "d":"deepl"
+        "b":"bing"
+        # "d":"deepl"
         }   
     while True:
         try:            
-            answer = input("Please choose a search engine Google or Deepl. Type G or D:").lower().strip()            
+            answer = input("Please choose a search engine: Google or Bing.\nType it's first letter G or B:").lower().strip()            
             if answer in engines.keys():
                 return engines[answer] 
             elif answer in engines.values():
@@ -108,9 +110,11 @@ def asks_see_supported(engine="google"):
             pass
 
 # Opens PDF with supported languages according to chosen engine
-def open_supported_file(engine): 
+def open_supported_file(engine = "google"): 
     supported = {"google":"supported_google.pdf",
-                 "deepl": "supported_deepl.pdf"}   
+                 "bing":"supported_bing.pdf"                 
+                 #"deepl": "supported_deepl.pdf"
+                 }   
     if engine in supported:
         file = supported[engine]
         webbrowser.open(file)
@@ -123,23 +127,23 @@ def open_supported_file(engine):
 def user_chosen_lang(engine):
     while True:
         try:
-            user_lang = input ("Please type the languague you want to translate to: ").lower().strip() 
-            lang_code = validadate_lang(user_lang, engine)
-            return lang_code
+            user_lang = input ("Please type the languague you want to translate to: ").strip().lower()            
+            lang_code, languague = validadate_lang(user_lang, engine)
+            return lang_code, languague
         except ValueError:
-            print ("No language found. Let's try again!\n")
+            print ("No language found.\nLet's try again!\n")
             asks_see_supported()
             pass
-        except ImportError:
-            print ("Fatal Error loading language file.\n")
-            sys.exit()
+
             
         
 # Validate user typed language, and returns the language code accepted by translators
 # Obs: function made this way so I can practice pytest monkeypatch and a new way of looping  
-def validadate_lang(user_lang, engine):
+def validadate_lang(user_lang, engine = "google"):
     eng_files = {"google":"supported_google.json",
-                 "deepl": "supported_deepl.json"}   
+                 "bing":"supported_bing.json"
+                 #"deepl": "supported_deepl.json"
+                 }   
     
     # load supported languages according to chosen engine
     try:        
@@ -149,21 +153,26 @@ def validadate_lang(user_lang, engine):
         raise ImportError
 
     # sees if user input is recognized inside that json
-  
-    if user_lang in supported.keys(): # user typed alredy the language code? ex "en" 
-        chosen_language = user_lang         
-        f.close()
-        return chosen_language           
-    else: # user typed the long version? ex "English"
-        user_lang = user_lang.title() # formating to match the json style
-        for code, names in supported.items():                
-            if type(names) != list: # if there is just one way of naming the lang (some langs have many)
-                names = [names] # tuns into list, so folloring line can check for langs with one or multiple names                     
-            if user_lang in names:  # then checks names in lists for match with user input, returning the code
-                chosen_language = code               
-                f.close()
-                return chosen_language
-    raise ValueError
+    try:
+        if user_lang in supported.keys(): # user typed alredy the language code? ex "en" 
+            lang_code = user_lang       
+        else: # user typed the long version? ex "English"
+            for code, names in supported.items():                
+                if type(names) != list: # if there is just one way of naming the lang (some langs have many)
+                    names = [names] # tuns into list, so folloring line can check for langs with one or multiple names                     
+                if user_lang in names:  # then checks names in lists for match with user input, returning the code
+                    lang_code = code 
+    except Exception:
+        raise ValueError
+           
+    # getting language in full name to print to user    
+    if type(supported[lang_code]) is not list:        
+        language = supported[lang_code] # user typed code, language has only one way of naming
+    else:
+        language = supported[lang_code][0] # user typed code, language has many names
+    
+    f.close()              
+    return lang_code, language
 
 # Extracts pages and paragraphs from original pdf, transforming in dictionary. TESTED
 
@@ -171,6 +180,7 @@ def source_builder(document, lang, eng):
     # variables initialization
     n_page = 1  # page counter, starts in 1 to be user friendlier
     p = [] # stores number of paragraphs per page
+
 
     # dicts to hold original and translated: key is page's number, elements are its paragraphs
     translated = {}
