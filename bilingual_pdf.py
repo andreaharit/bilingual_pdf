@@ -1,10 +1,13 @@
-import fitz # PyMuPDF 1.22.2, handles reading a pdf
+import fitz # PyMuPDF handles parsing the pdf
+import webbrowser # Ppen pdf for user
+import translators as ts # Translation library
+import re
 import json
-import webbrowser # open pdf in app
-import translators as ts # translation tool
+
 
 
 def main():
+
     # initiate variables
     source_processed = {} # dict stores original text {page: [paragraph 1, paragraph 2 etc]}
     translated_processed = {} # dict stores translated text {page: [translated paragraph 1, etc]}
@@ -22,21 +25,23 @@ def main():
 
     # gets target language from user
     user_lang, lang_name = user_chosen_lang(user_eng)
+
+    # sums up to user all the info
     print("Great, we are translating now " + valid_file_path + " to " + lang_name + ".\n")
     print("Preparing Bilingual pdf! This might take a bit =)\n")
 
 
-    # transforms pdf into 2 dict: one with original text, other with translated    
+    # transforms pdf into 2 dict: original text, translated and count paragraphs per page    
     try: 
-        source_processed, translated_processed, paragraphs = source_builder(valid_file_path, user_lang, user_eng)
+        source_processed, paragraphs = source_builder(valid_file_path)
+        translated_processed = translator_builder (source_builder, user_lang, user_eng)
     except Exception:
-        raise Exception ("Something unexpected happened! File could not be translated")             
+        raise Exception ("Something unexpected happened! File could not be translated.")            
      
-    # TO DO: asks user for path to new pdf and name
 
     # TO DO: builds a new pdf with the table showing paragraph ID, original text and translated
 
-    # TO DO: opens new pdf
+    # TO DO: opens new pdf to user
 
 
     # builds a json file for testing
@@ -47,20 +52,22 @@ def main():
     print (paragraphs)
     print ("It worked! Go check =) \n")
 
+
 # FUNCTIONS
 
-# ask user for original PDF file path TESTED
+# Asks user for PDF file path TESTED
 def input_file():        
     while True:
             try:
                 file_path = input("Please insert the PDF file path to be translated: ")
-                valid_file_path = check_file(file_path)  # check if file path and PDF is valid        
+                valid_file_path = check_file(file_path)  # check if file path and if is a valid PDF       
                 return valid_file_path     
             except FileExistsError:
-                print("Error loading the file, please check the file path and if the file is a PDF.\n")
+                print("Error loading the file, please check the file path or if file is a PDF.\n")
                 pass
 
-# tests validy of PDF file provided TESTED
+
+# Tests validy of PDF file/filepath TESTED
 def check_file(file_path):  
     file_path.strip()
     try: 
@@ -69,8 +76,9 @@ def check_file(file_path):
     except Exception:
         raise FileExistsError   
 
-# gets user choice for search engine TESTED
-# note, the translator library is having issues with deepl, so this option is commented until this is solved
+
+# Asks user for search engine TESTED
+# PS: translator library is having issues with deepl, so this option is commented until this is solved
 def user_chosen_eng():
     engines = {
         "g":"google",
@@ -89,8 +97,9 @@ def user_chosen_eng():
         except ValueError:
             print ("Answer not recognized.\n")
             pass
-    
-# Asks user if they want to see supported languages TESTED
+
+
+# Asks user if they want to see supported languages for chosen engine TESTED
 def asks_see_supported(engine="google"):
     # supported answers 
     yes = ["y", "yes"]
@@ -109,7 +118,8 @@ def asks_see_supported(engine="google"):
             print ("Please type Y or N.\n")
             pass
 
-# Opens PDF with supported languages according to chosen engine
+
+# Opens PDF with supported languages according to chosen engine TESTED
 def open_supported_file(engine = "google"): 
     supported = {"google":"supported_google.pdf",
                  "bing":"supported_bing.pdf"                 
@@ -122,8 +132,8 @@ def open_supported_file(engine = "google"):
     else:
         raise ValueError 
 
-# Ask user to input target language for translation
 
+# Asks user to input target language for translation TESTED
 def user_chosen_lang(engine):
     while True:
         try:
@@ -137,8 +147,7 @@ def user_chosen_lang(engine):
 
             
         
-# Validate user typed language, and returns the language code accepted by translators
-# Obs: function made this way so I can practice pytest monkeypatch and a new way of looping  
+# Validate user lang input, and returns the language code accepted by translators TESTED
 def validadate_lang(user_lang, engine = "google"):
     eng_files = {"google":"supported_google.json",
                  "bing":"supported_bing.json"
@@ -152,75 +161,100 @@ def validadate_lang(user_lang, engine = "google"):
     except Exception:        
         raise ImportError
 
-    # sees if user input is recognized inside that json
+    # sees if user input is supported by the engine
     try:
         if user_lang in supported.keys(): # user typed alredy the language code? ex "en" 
             lang_code = user_lang       
         else: # user typed the long version? ex "English"
             for code, names in supported.items():                
-                if type(names) != list: # if there is just one way of naming the lang (some langs have many)
+                if type(names) != list: # if there is just one name for the lang (some langs have many)
                     names = [names] # tuns into list, so folloring line can check for langs with one or multiple names                     
-                if user_lang in names:  # then checks names in lists for match with user input, returning the code
-                    lang_code = code 
+                if user_lang in names:  # then checks names in lists for match with user input
+                    lang_code = code      
+            
+        # getting language in full name to print to user    
+        if type(supported[lang_code]) is not list:        
+            language = supported[lang_code] # user typed code, language has only one way of naming
+        else:
+            language = supported[lang_code][0] # user typed code, language has many names
+        
+        f.close()         
+        # returns the code for the transaltion engine, and a lang name     
+        return lang_code, language
     except Exception:
         raise ValueError
-           
-    # getting language in full name to print to user    
-    if type(supported[lang_code]) is not list:        
-        language = supported[lang_code] # user typed code, language has only one way of naming
-    else:
-        language = supported[lang_code][0] # user typed code, language has many names
     
-    f.close()              
-    return lang_code, language
-
-# Extracts pages and paragraphs from original pdf, transforming in dictionary. TESTED
-
-def source_builder(document, lang, eng):  
+# Extracts pages and paragraphs from original pdf, transforming in dictionary
+def source_builder(document):  
     # variables initialization
     n_page = 1  # page counter, starts in 1 to be user friendlier
     p = [] # stores number of paragraphs per page
 
 
-    # dicts to hold original and translated: key is page's number, elements are its paragraphs
-    translated = {}
+    # dicts to hold original: key is page's number, elements are its paragraphs
     original = {} 
 
     # open, read and populate dictionary
-    doc = fitz.open(document)   
-    for page in doc:
-        # provisory list of paragraphs in each page
-        provisional_original = [] 
-        provisional_translated = [] 
-        par = 0 # provisional paragraph counter per page
+    doc = fitz.open(document) 
 
-        # reads each "block" in the page, aka list with characteristics and content of a paragraph
+    for page in doc:
+        provisional_original = [] # provisory list of paragraphs for each page
+        n_par = 0 # provisional counter of number of paragraph for each page
+
+        # reads each "block" in the page, see PyMuPDF documentation
         source = page.get_text("blocks")     
         for paragraph in source:
             if (paragraph[6] == 0):  # ignores blocks that are type "image"               
-                sentence = p_cleaner(paragraph[4]) # clean paragraph of weird markdown/special char stuff                
+                sentence = p_cleaner(paragraph[4]) # clean weird chars or paragraphs that don't have real text               
                 if sentence != "" or sentence != "\n": # ignores blank paragraphs
-                    # keeps populating provisory lists in current page
+                    # populating provisory lists in current page
                     provisional_original.append(sentence)                                 
-                    provisional_translated.append(translate(sentence, lang, eng)) 
-                    par = par + 1
-        # after provisory list is done:
+                    n_par = n_par + 1
+        
         # update list of number of paragraphs in each page
-        p.append(par) 
+        p.append(n_par) 
         # builds dict with that page number as key and its list of paragraphs as values        
         original[n_page] = provisional_original        
-        translated[n_page] = provisional_translated
         n_page = n_page + 1
-    return original, translated, p
+    return original, p
 
-# TO DO: there are other leftover characters not cleaned yet 
-# to think: should I ignore paragraphs that are just websites, dates, numbers?
+# Translates the dictionary with original text
+def translator_builder(original, lang, eng):  
+    trans ={}   
+    # goes to each key and it's paragraphs and returns a dict with translation
+    for page, paragraphs in original.items():
+        provisory = []
+        for i in paragraphs:
+            new_sentence = translate(i, lang, eng)
+            provisory.append(new_sentence)
+        trans[page] = provisory 
+    return trans  
+
+
+
+# Cleans parser's special char, websites and string that contain no real text 
 def p_cleaner(paragraph):  # Clean paragraphs texts of weird leftover characters
-    new = paragraph.rstrip("\n").replace("\n", " ").replace("  ", " ").strip().replace('\"',"'")    
-    return new
+    new = paragraph.rstrip("\n").replace("\n", " ").replace("  ", " ").strip().replace('\"',"'") 
 
-def hf_cleaner(): # TO DO clean dictionary with original from possible repetitive footers and headers
-    print("something")
+    if re.search(r"http|www", paragraph): # check if there is url and substitute for shorter "URL"
+        s = re.sub("http\S+","URL", paragraph)
+        s = re.sub("www\S+","URL", s)
+        mod_sentence = s.replace("URL", "1").strip() # gimmick to see if sentence will be just url + garbage
+    else:
+        mod_sentence = paragraph
+
+    for c in mod_sentence: #checking if the sentence has just numbers, special char, url 
+        if c.isalpha():
+            check = True
+            break
+        else:
+            check = False
+    if check: # sentence has real words
+        new = mod_sentence
+    else: # if it's a garbage sentence returns empty string
+            new=""
+    
+    return new
 
 # Translate each paragraph, TESTED    
 def translate(paragraph, language, engine): 

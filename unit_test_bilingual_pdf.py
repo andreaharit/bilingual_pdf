@@ -22,7 +22,7 @@ def test_file_valid():
 
 # Teste 2: test choice of engine
 def test_chosen_eng(monkeypatch):
-    inputs = ['google','Google', 'g', 'G',"deepl", "d"]
+    inputs = ['google','Google', 'g', 'G',"BIng", "b "]
    
     for i in inputs[0:4]:    
         monkeypatch.setattr('builtins.input', lambda _: i)
@@ -32,7 +32,7 @@ def test_chosen_eng(monkeypatch):
     for j in inputs[4:]:
         monkeypatch.setattr('builtins.input', lambda _: j)
         result = user_chosen_eng()
-        assert result == "deepl"
+        assert result == "bing"
     
 
 
@@ -47,15 +47,16 @@ def test_supoported_pdf(monkeypatch):
     
 # Test 4: test if languague is accepted by engine and code return
 def test_validadate_lang(): 
-    inputs = ['English','english', 'en', 'Myanmar Burmese', 'Myanmar burmese',  'zu']
-    answers = ['en','en','en', 'my', 'my', 'zu' ]  
+    inputs = ['english', 'en', 'myanmar burmese','scots']    
+    code_output = ['en','en', 'my', 'gd' ]  
+    lang_output = ["english","english", "myanmar burmese", "scots gaelic"]
     for i in range(len(inputs)):      
-        assert (validadate_lang(inputs[i], "google")) == answers[i] 
-    for eng in ["google","deepl"]:
+        assert (validadate_lang(inputs[i], "google")) == (code_output[i], lang_output[i]) 
+        assert (validadate_lang(inputs[i], "bing")) == (code_output[i] , lang_output[i])
+ 
+    for eng in ["google","bing"]:
         with pytest.raises (ValueError):
             validadate_lang("blah", eng)
-    for j in range(3): 
-        assert (validadate_lang(inputs[j], "deepl")) == answers[j] 
 
 
 
