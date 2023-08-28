@@ -5,6 +5,9 @@ import re
 import json
 
 
+# TO DO: there are a lot of characters remaining to be clean, source builder is appending empty stuff
+# make the final pdf
+
 
 def main():
 
@@ -34,7 +37,7 @@ def main():
     # transforms pdf into 2 dict: original text, translated and count paragraphs per page    
     try: 
         source_processed, paragraphs = source_builder(valid_file_path)
-        translated_processed = translator_builder (source_builder, user_lang, user_eng)
+        translated_processed = translator_builder (source_processed, user_lang, user_eng)
     except Exception:
         raise Exception ("Something unexpected happened! File could not be translated.")            
      
@@ -219,10 +222,11 @@ def source_builder(document):
     return original, p
 
 # Translates the dictionary with original text
-def translator_builder(original, lang, eng):  
+def translator_builder(original, lang, eng): 
+    source = original 
     trans ={}   
     # goes to each key and it's paragraphs and returns a dict with translation
-    for page, paragraphs in original.items():
+    for page, paragraphs in source.items():
         provisory = []
         for i in paragraphs:
             new_sentence = translate(i, lang, eng)

@@ -1,6 +1,6 @@
 import translators as ts
 
-example ={1:["oi tudo bem?"], 2:["primeiro teste", "outro teste"]}
+example ={"1":["oi tudo bem?"], "2":["primeiro teste", "outro teste"]}
 lang = "en"
 eng = "google"
 
