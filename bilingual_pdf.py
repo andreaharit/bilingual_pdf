@@ -209,7 +209,7 @@ def source_builder(document):
         for paragraph in source:
             if (paragraph[6] == 0):  # ignores blocks that are type "image"               
                 sentence = p_cleaner(paragraph[4]) # clean weird chars or paragraphs that don't have real text               
-                if sentence != "" or sentence != "\n": # ignores blank paragraphs
+                if sentence != None: # ignores blank paragraphs
                     # populating provisory lists in current page
                     provisional_original.append(sentence)                                 
                     n_par = n_par + 1
@@ -238,27 +238,30 @@ def translator_builder(original, lang, eng):
 
 # Cleans parser's special char, websites and string that contain no real text 
 def p_cleaner(paragraph):  # Clean paragraphs texts of weird leftover characters
-    new = paragraph.rstrip("\n").replace("\n", " ").replace("  ", " ").strip().replace('\"',"'") 
+    new = paragraph.rstrip(r"\n").replace(r"\n", " ").replace("  ", " ").replace('\"',"'").strip()
+    check = 0
 
-    if re.search(r"http|www", paragraph): # check if there is url and substitute for shorter "URL"
-        s = re.sub("http\S+","URL", paragraph)
+    if new == "\n" or new == "":
+        return None
+    elif re.search(r"http|www", new): # check if there is url and substitute for shorter "URL"
+        s = re.sub("http\S+","URL", new)
         s = re.sub("www\S+","URL", s)
         mod_sentence = s.replace("URL", "1").strip() # gimmick to see if sentence will be just url + garbage
     else:
-        mod_sentence = paragraph
+        mod_sentence = new
 
     for c in mod_sentence: #checking if the sentence has just numbers, special char, url 
         if c.isalpha():
-            check = True
-            break
+            check = check +1
+            
         else:
-            check = False
-    if check: # sentence has real words
-        new = mod_sentence
-    else: # if it's a garbage sentence returns empty string
-            new=""
-    
-    return new
+            pass
+
+    if check >1: # sentence has real words
+        return mod_sentence
+ 
+    else:
+        return None
 
 # Translate each paragraph, TESTED    
 def translate(paragraph, language, engine): 
