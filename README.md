@@ -1,12 +1,12 @@
-# Bilingual pdf builder
+# Bilingual_PDF
 
 ## What it does
 
-Bilingual PDF builder is a Python program that asks the user for a PDF document, a target language for translation, and outputs a new PDF where you can compare the original text and the translated one, paragraph per paragraph.
+Bilingual_PDF is a Python program that asks the user for a PDF document, a target language for translation, and outputs a new PDF where you can compare the original text and the translated one, paragraph per paragraph.
 
 The new PDF has a table where each row is a paragraph. And the three columns are:
 
-- **Index**. This is a numeric ID of the page and paragraph. Example: 1.1 is the first page and its first paragraph.
+- **Page/Paragraph**. This is a numeric ID of the page and paragraph. Example: 1.1 is the first page and its first paragraph.
 - **Original**. The original text.
 - **Translated**. The translated text.
 
@@ -39,7 +39,7 @@ The dependencies are in the requirements.txt.
 
 ### Not required to run the program:
 
-- The Unit test directory contains the unit tests code for some functions in the program.
+- The Unit test directory contains the unit tests code for some functions in the program. It requires to work the file example1.pdf for one of the tests.
 - Many commits may have files with names as "experiments", "sketches". Those were files used as a thinking place to build funcions without messing with the main code.
 
 ## How to use it
@@ -47,8 +47,9 @@ The dependencies are in the requirements.txt.
 After running the program in your IDE of choice, the program asks the user in the **terminal** for the following inputs:
 
 - The PDF's file path to be translated.
-- If the user wants to see the supported languages they can choose from for that engine (Y/N answer). If yes, it opens a pdf with the info.
 - Which translation engine the user wants to use.
+- If the user wants to see the supported languages they can choose from for that engine (Y/N answer). If yes, it opens a pdf with the info.
+- The target language for translation.
 
 And finally, it spits the new bilingual PDF and opens it to the user.
 
@@ -61,7 +62,7 @@ So far the engines supported are Google and Bing. The languague each one support
 - I don't know OOP _yet_. Nor how to make packages. So it's all in one file.
 - Deepl is commented as an option because the library Translators was having an issue with it.
 - There is much to improve in terms of cleaning relevant text (as repetitive texts from headers and footers for example)
-- It looks like Borb will soon release a version that solves the issue of having to calculate by hand how big a table can be in the pages, until them, the way it was done in the program is not perfect, but it searves its purpose
+- It looks like Borb will soon release a version that solves the issue of having to calculate by hand how big a table can be in the pages, until them, the way it was done in the program is not perfect (blank pages at the end, or blank table/cells at the end), but it searves its purpose
 
 ## What can be improved besides the beginner's code stuff
 
