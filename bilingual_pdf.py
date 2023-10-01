@@ -19,7 +19,7 @@ from borb.pdf import PDF, Document, Page, FlexibleColumnWidthTable, Table, Parag
         - The translated text.
     It is a pet project of someone who is learning Python, and doesn't know OOP yet. 
     And it was submeted on the EDX course CS50P as a final project.
-    This version was finished on 29/09/2023 by Andrea Haritçalde.
+    This version was finished on 29/09/2023 by Andrea Harit..
 """
 
 def main():
