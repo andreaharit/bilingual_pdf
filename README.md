@@ -37,6 +37,8 @@ The dependencies are in the requirements.txt.
 - the jsons contain the supported languages for each translation engine. It's used to check for the validity of the user's input and get the accepted language code for the translators library.
 - the pdfs contain the supported languagues for each engine, and will be opened during the program if the user wants to see this info.
 
+OBS: since Deepl is having issues in the translators library, its json and pdf area also no required.
+
 ### Not required to run the program:
 
 - The Unit test directory contains the unit tests code for some functions in the program. It requires to work the file example1.pdf for one of the tests.
