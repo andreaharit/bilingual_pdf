@@ -2,7 +2,7 @@
 
 ## What it does
 
-Bilingual_PDF is a Python program that asks the user for a PDF document, a target language for translation, and outputs a new PDF where you can compare the original text and the translated one, paragraph per paragraph.
+Bilingual_PDF is a Python program that asks the user for a PDF document, a translation engine and target language for translation. Then it outputs a new PDF where you can compare the original text and the translated one, paragraph per paragraph.
 
 The new PDF has a table where each row is a paragraph. And the three columns are:
 
@@ -37,12 +37,12 @@ The dependencies are in the requirements.txt.
 - the jsons contain the supported languages for each translation engine. It's used to check for the validity of the user's input and get the accepted language code for the translators library.
 - the pdfs contain the supported languagues for each engine, and will be opened during the program if the user wants to see this info.
 
-OBS: since Deepl is having issues in the translators library, its json and pdf area also no required.
+OBS: since Deepl is having issues in the translators library, its json and pdf area also no required in the present version.
 
 ### Not required to run the program:
 
 - The Unit test directory contains the unit tests code for some functions in the program. It requires to work the file example1.pdf for one of the tests.
-- Many commits may have files with names as "experiments", "sketches". Those were files used as a thinking place to build funcions without messing with the main code.
+- Many previous commits may have files with names as "experiments", "sketches". Those were files used as a thinking place to build functions without messing with the main code.
 
 ## How to use it
 
@@ -50,16 +50,16 @@ After running the program in your IDE of choice, the program asks the user in th
 
 - The PDF's file path to be translated.
 - Which translation engine the user wants to use.
-- If the user wants to see the supported languages they can choose from for that engine (Y/N answer). If yes, it opens a pdf with the info.
+- If the user wants to see the supported languages by that engine. They can choose  and Y/N answer. If yes, it opens a pdf with the info.
 - The target language for translation.
 
 And finally, it spits the new bilingual PDF and opens it to the user.
 
-So far the engines supported are Google and Bing. The languague each one support are in the ones pointed out in the translators documentation.
+So far the engines supported are Google and Bing. The language each one support are the ones pointed out by the translators documentation.
 
 ## Important observations
 
-- Sometimes the program doesn't do a perfect job depending on how the paragraphs were splitted in the original doc.
+- Sometimes the program doesn't do a perfect job depending on how the paragraphs were split in the original doc.
 - This is a **beginner's program**. If it burns your eyes seeing my code, I am sorry and I'd appreciate any polite feedback.
 - I don't know OOP _yet_. Nor how to make packages. So it's all in one file.
 - Deepl is commented as an option because the library Translators was having an issue with it.
@@ -68,11 +68,11 @@ So far the engines supported are Google and Bing. The languague each one support
 
 ## What can be improved besides the beginner's code stuff
 
-The priotity:
+The priority:
 
 - Better cleaning of irrelevant texts.
-- Wait for Borb to release new version of how to fit a huge table in multiple pages that will then be created automatically, or improve this program solution.
-- Wait for Deepl to work again, or do a work around without the translators library
+- Wait for Borb to release a new version of how to fit a huge table in multiple pages that will then be created automatically, or improve this program solution.
+- Wait for Deepl to work again, or do a workaround without the translators library
 
 The next-level stuff:
 
@@ -86,7 +86,7 @@ The next-level stuff:
 ### What I learned
 
 - I learned a lot about reading documentation, even though 99.99% of all documentation is still very "over 1000 IQ" cryptic to me.
-- I learned about unit tests, specially monkeypatch (it took a while to figure this one out).
+- I learned about unit tests, especially monkeypatch (it took a while to figure this one out).
 - My Googleing skills and "let's-adapt-this-stack-overflow-answer" are a lot better.
 - I learned a bit about libraries for text extraction and PDF manipulation.
 - I started using git.
